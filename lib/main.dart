@@ -40,6 +40,14 @@ class ToDoScreen extends StatelessWidget {
     }
   }
 
+  void toggleDone(DocumentSnapshot doc) {
+    todos.doc(doc.id).update({'done': !doc['done']});
+  }
+
+  void deleteTodo(DocumentSnapshot doc) {
+    todos.doc(doc.id).delete();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,6 +70,61 @@ class ToDoScreen extends StatelessWidget {
                 SizedBox(width: 8.0),
                 IconButton(onPressed: addTodo, icon: Icon(Icons.add)),
               ],
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: todos.snapshots(),
+              builder: (context, snapshot) {
+                // estado de caregamento
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                // caso de erro
+                if (snapshot.hasError) {
+                  return const Center(
+                    child: Text(
+                      'Ocorreu um erro',
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+                // caso não haja nenhum registro
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Nenhuma tarefa encontrada',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
+                // dados disponiveis
+                final docs = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (_, index) {
+                    final doc = docs[index];
+                    return ListTile(
+                      title: Text(
+                        doc['title'],
+                        style: TextStyle(
+                          decoration: doc['done']
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      leading: Checkbox(
+                        value: doc['done'],
+                        onChanged: (_) => toggleDone(doc),
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () => deleteTodo(doc),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
